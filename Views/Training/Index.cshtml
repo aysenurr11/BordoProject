@@ -1,0 +1,225 @@
+﻿@model BordoProject.ViewModels.TrainingViewModel
+
+<!DOCTYPE html>
+<html lang="tr">
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>HAFTALIK GÖREV PLANI</title>
+
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet" />
+    <!-- Özel CSS -->
+    <link rel="stylesheet" href="/css/Survey.css" />
+</head>
+<body>
+    <div class="container mt-5">
+        <form id="survey-form" asp-action="Index" asp-controller="Training" method="post" class="p-4 bg-light shadow rounded">
+            <h2 class="mb-4">HAFTALIK GÖREV PLANI</h2>
+
+            <div class="form-group mb-3">
+                <label for="name" class="form-label">Adınız</label>
+                <input type="text" name="Name" id="name" asp-for="Name" maxlength="35" minlength="3" required class="form-control">
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="email" class="form-label">Email</label>
+                <input type="email" name="Email" id="email" asp-for="Email" maxlength="35" minlength="3" required class="form-control">
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="Bolum1" class="form-label">Bölüm 1: Geçen hafta yaptığınız çalışmalar, toplantılar ve izlenimleriniz hakkında bilgi verir misiniz?</label>
+                <textarea name="Bolum1" asp-for="Bolum1" id="Bolum1" maxlength="100" minlength="3" required class="form-control" rows="3"></textarea>
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="Bolum2" class="form-label">Bölüm 2: Bu hafta hangi gün ve saatlerde tahmini mesai yapacaksınız bilgi verir misiniz?</label>
+                <div id="daysContainer"></div>
+            </div>
+
+            <input type="hidden" name="Bolum2" id="selected-days" />
+
+            <div class="form-check mb-3">
+                <input type="checkbox" class="form-check-input" name="NonWorkingDay" asp-for="NonWorkingDay" id="NonWorkingDay">
+                <label class="form-check-label" for="NonWorkingDay">Bu hafta çalışmadım</label>
+            </div>
+
+            <div class="form-group mb-3">
+                <label for="total-hours" class="form-label">Toplam Saat</label>
+                <input type="text" id="total-hours" name="TotalHours" asp-for="TotalHours" readonly class="form-control">
+            </div>
+
+            <!-- Bölüm 3 -->
+            <div class="form-group mb-3">
+                <label for="Bolum3" class="form-label">Bölüm 3: Bu haftaki mesainizde, halihazırda üzerinizde olan işlere tahmini ne kadar vakit gidecek? İşleri maddeleyerek belirtir misiniz?</label>
+                <div id="workItemsContainer">
+                    <!-- İş maddeleri burada eklenecek -->
+                </div>
+                <button type="button" id="addWorkItem" class="btn btn-secondary">İş Maddesi Ekle</button>
+            </div>
+
+            <!-- Bölüm 4 -->
+            <div class="form-group mb-4">
+                <label for="Bolum4" class="form-label">Bölüm 4: Üzerinizde olan işler ve mesai planınıza göre, bu hafta kaç saat daha yeni iş alabilirim dersiniz?</label>
+                <textarea name="Bolum4" asp-for="Bolum4" id="Bolum4" maxlength="100" minlength="3" readonly class="form-control" rows="3"></textarea>
+            </div>
+
+            <!-- Gizli input total hours için -->
+            <input type="hidden" id="total-hours-hidden" name="TotalHours" />
+
+            <button type="submit" value="submit" id="submit" class="btn btn-primary w-100">Gönder</button>
+        </form>
+
+    </div>
+
+    <!-- Bootstrap JS -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+    <!-- Özel JS -->
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const days = ['Pazartesi', 'Salı', 'Çarşamba', 'Perşembe', 'Cuma', 'Cumartesi', 'Pazar'];
+            const daysContainer = document.getElementById('daysContainer');
+            const workItemsContainer = document.getElementById('workItemsContainer');
+            const totalHoursInput = document.getElementById('total-hours');
+            const totalHoursHiddenInput = document.getElementById('total-hours-hidden');
+            const bolum4Textarea = document.getElementById('Bolum4');
+
+            days.forEach(day => {
+                const dayContainer = document.createElement('div');
+                dayContainer.className = 'day-container form-group mb-3';
+
+                const dayCheckbox = document.createElement('input');
+                dayCheckbox.type = 'checkbox';
+                dayCheckbox.className = 'form-check-input day-checkbox';
+                dayCheckbox.id = day;
+                dayCheckbox.value = day;
+
+                const dayLabel = document.createElement('label');
+                dayLabel.className = 'form-check-label';
+                dayLabel.htmlFor = day;
+                dayLabel.innerText = day;
+
+                const timeForm = document.createElement('div');
+                timeForm.className = 'time-form';
+                timeForm.style.display = 'none';
+
+                for (let i = 0; i < 2; i++) {
+                    const startTime = document.createElement('input');
+                    startTime.type = 'time';
+                    startTime.className = 'form-control StartTime mb-2';
+
+                    const endTime = document.createElement('input');
+                    endTime.type = 'time';
+                    endTime.className = 'form-control EndTime mb-2';
+
+                    timeForm.appendChild(startTime);
+                    timeForm.appendChild(endTime);
+                }
+
+                dayContainer.appendChild(dayCheckbox);
+                dayContainer.appendChild(dayLabel);
+                dayContainer.appendChild(timeForm);
+                daysContainer.appendChild(dayContainer);
+            });
+
+
+            document.getElementById('survey-form').addEventListener('submit', function () {
+                let selectedDays = [];
+
+                document.querySelectorAll('.day-container').forEach(container => {
+                    const checkbox = container.querySelector('.day-checkbox');
+                    if (checkbox && checkbox.checked) {
+                        const startTimes = container.querySelectorAll('.StartTime');
+                        const endTimes = container.querySelectorAll('.EndTime');
+                        let dayDetails = `${checkbox.value}:`;
+
+                        for (let i = 0; i < startTimes.length; i++) {
+                            const startTime = startTimes[i].value;
+                            const endTime = endTimes[i].value;
+                            if (startTime && endTime) {
+                                dayDetails += ` ${startTime}-${endTime};`;
+                            } else {
+                                dayDetails += ` Saat belirtilmemiş;`;
+                            }
+                        }
+
+                        selectedDays.push(dayDetails);
+                    }
+                });
+
+                document.getElementById('selected-days').value = selectedDays.join('; ');
+
+                // TotalHours alanını da gizli input'a ata
+                totalHoursHiddenInput.value = totalHoursInput.value;
+
+                // Bölüm 4'ü hesapla
+                const totalHours = parseFloat(totalHoursInput.value) || 0;
+                const totalWorkHours = Array.from(document.querySelectorAll('.work-item-hours')).reduce((acc, input) => acc + (parseFloat(input.value) || 0), 0);
+                const remainingHours = totalHours - totalWorkHours;
+                bolum4Textarea.value = remainingHours.toFixed(1);
+            });
+
+            document.querySelectorAll('.day-checkbox').forEach(checkbox => {
+                checkbox.addEventListener('change', function () {
+                    const timeForm = this.parentElement.querySelector('.time-form');
+                    timeForm.style.display = this.checked ? 'block' : 'none';
+                    calculateTotalHours();
+                });
+            });
+
+            function calculateTotalHours() {
+                let totalHours = 0;
+                document.querySelectorAll('.day-container').forEach(container => {
+                    const checkbox = container.querySelector('.day-checkbox');
+                    if (checkbox && checkbox.checked) {
+                        const startTimes = container.querySelectorAll('.StartTime');
+                        const endTimes = container.querySelectorAll('.EndTime');
+                        let dayHours = 0;
+
+                        for (let i = 0; i < startTimes.length; i++) {
+                            const startTime = startTimes[i].value;
+                            const endTime = endTimes[i].value;
+                            if (startTime && endTime) {
+                                const start = new Date(`1970-01-01T${startTime}Z`);
+                                const end = new Date(`1970-01-01T${endTime}Z`);
+                                const hours = (end - start) / (1000 * 60 * 60);
+                                dayHours += hours;
+                            }
+                        }
+                        totalHours += dayHours;
+                    }
+                });
+
+                let formattedHours = totalHours.toFixed(1).replace(',', '.');
+                totalHoursInput.value = formattedHours;
+            }
+
+            document.querySelectorAll('input[type="time"]').forEach(input => {
+                input.addEventListener('change', calculateTotalHours);
+            });
+
+            document.getElementById('addWorkItem').addEventListener('click', function () {
+                const workItemContainer = document.createElement('div');
+                workItemContainer.className = 'work-item mb-2';
+
+                const workDescription = document.createElement('input');
+                workDescription.type = 'text';
+                workDescription.className = 'form-control work-item-desc mb-2';
+                workDescription.placeholder = 'İş açıklaması';
+
+                const workHours = document.createElement('input');
+                workHours.type = 'number';
+                workHours.className = 'form-control work-item-hours mb-2';
+                workHours.placeholder = 'Saat';
+
+                workItemContainer.appendChild(workDescription);
+                workItemContainer.appendChild(workHours);
+                workItemsContainer.appendChild(workItemContainer);
+            });
+
+        });
+
+    </script>
+
+</body>
+</html>

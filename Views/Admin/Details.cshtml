@@ -1,0 +1,19 @@
+﻿@model BordoProject.Models.Answer
+
+<h2>Yanıt Detayları</h2>
+
+<div>
+    <h4>Çalışan: @Model.Employee.Name</h4>
+    <p><strong>Email:</strong> @Model.Employee.Email</p>
+    <p><strong>Bölüm 1:</strong> @Model.Bolum1</p>
+    <p><strong>Bölüm 2:</strong> @Model.Bolum2</p>
+    <p><strong>Bölüm 3:</strong> @Model.Bolum3</p>
+    <p><strong>Bölüm 4:</strong> @Model.Bolum4</p>
+    <p><strong>Toplam Saat:</strong> @Model.TotalHours</p>
+    <p><strong>Form Doldurulma Tarihi:</strong> @Model.DateFilled</p>
+    <p><strong>Bu hafta çalışılmadı:</strong> @Model.NonWorkingDay</p>
+</div>
+
+<a href="@Url.Action("Index", "Admin")">Geri Dön</a>
+
+
